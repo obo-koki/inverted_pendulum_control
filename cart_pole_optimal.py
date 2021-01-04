@@ -5,65 +5,30 @@ import numpy as np
 from scipy import linalg
 from cart_pole_reglator import CartPole
 
-class CartPoleServo(CartPole):
-    def __init__(self, m1, m2, l):
-        super().__init__(m1, m2, l)
-    
-    def model_matrix(self):
-        '''
-        線形モデル
-        '''
-        A = np.array([
-            [0, 0, 1, 0],
-            [0, 0, 0, 1],
-            [0, CartPole.g*self.m2/self.m1, 0, 0],
-            [0, CartPole.g*(self.m1 + self.m2)/(self.l*self.m1), 0, 0]
-        ])
 
-        B = np.array([
-                [0],
-                [0],
-                [1/self.m1],
-                [1/(self.l*self.m1)]
-            ])
-        '''
-        線形モデル（拡大系)
-        xdot = [ A  0 ] x + [ B ] u
-               [-C  0 ]     [ 0 ]
-        '''
-        C = np.array([0,1,0,0])
-        #print (C)
-
-        #A_Zero = np.zeros((4,4))
-
-        #A0 = np.append(A, A_Zero, axis=1)
-        #C0 = np.append(-C, A_Zero, axis=1)
-        #A_bar = np.append(A0,C0,axis=0)
-        #print (A_bar)
-
-        #B_Zero = np.zeros((4,1))
-        
-        #B_bar = np.append(B,B_Zero,axis=0)
-        #print (B_bar)
-
-        return A, B, C
-
-def lqr(A, B, C, Q, R):
+def lqr(A, B, Q, R):
     '''
-    最適サーボ計算
+    最適レギュレータ計算
     '''
+    C = np.array([[1,1,1,1]])
     P = linalg.solve_continuous_are(A, B, Q, R)
     F_0 = -linalg.inv(R).dot(B.T).dot(P)
-    X = A - B.dot(linalg.inv(R)).dot(B.T).dot(P)
-    Y = -C.dot(linalg.inv(X)).dot(B)
+    print (F_0)
+    AB = np.append(A,B,axis=1)
+    C0 = np.append(C, np.zeros((1,1)),axis=1)
+    ABC0 = np.append(AB, C0, axis=0)
+    print (ABC0)
 
-    if Y.ndim ==1:
-        if Y[0] == 0:
-            H_0 = Y
-        else:
-            H_0 = np.array([1/Y[0]])
-    else:
-        H_0 = linalg.inv(Y)
+    F_0I = np.append(F_0,np.eye(1),axis=1)
+    print (F_0I)
+    ABC0_inv = np.linalg.inv(ABC0)
+    print (ABC0_inv)
+    I0 = np.append(np.zeros((4,1)),np.eye(1),axis=0)
+    print (I0)
+    print (F_0I * ABC0_inv)
+
+    H_0 = F_0I.dot(ABC0_inv).dot(I0)
+    print ("H_0:",H_0)
 
     return F_0, H_0
 
@@ -127,24 +92,22 @@ def draw_pendulum(ax, t, xt, theta, l):
 
 def main():
     # モデル初期化
-    ip = CartPoleServo(m1 = 1.0, m2 = 0.1, l = 0.8)
+    ip = CartPole(m1 = 1.0, m2 = 0.1, l = 0.8)
 
-    # 最適レギュレータ計算 K:フィードバックゲイン
-    A, B, C = ip.model_matrix()
-    Q = np.diag([1, 1000, 10, 1]) #決め方が分からない
+    # 最適レギュレータ計算
+    A, B = ip.model_matrix()
+    Q = np.diag([1, 100, 1, 10])
     R = np.eye(1)
-    F_0, H_0 = lqr(A, B, C, Q, R)
-    print (F_0)
-    print (H_0)
+
+    F_0, H_0 = lqr(A, B, Q, R)
 
     # シミュレーション用変数初期化
     T = 10
     dt = 0.05
-    x0 = np.array([0, 0, 0, 0]) * np.random.randn(1)
+    x0 = np.array([0, 0.1, 0, 0]) * np.random.randn(1)
 
-    # 目標値
-    x_target = np.array([0])
-    vel_target = np.array([0,0,0.5,0])
+    #目標値
+    x_target = np.array([0,0,1,0])
 
     w0 = x_target - x0
 
@@ -159,10 +122,10 @@ def main():
 
     # シミュレーションループ
     for i in range(1, len(t)):
-        u[i] = F_0.dot(x[i-1,:]-vel_target) + H_0.dot(x_target)
+        u[i] = np.dot(F_0, x[i-1,:])+ H_0*w[i-1,:] + np.random.randn(1)
+        print ("i:",i,"u[i]:",u[i])
         dx = ip.state_equation(x[i-1,:], u[i])
         x[i,:] = x[i-1,:] + dx * dt
-        #w[i,:] = x_target - x[i-1,:] + w[i-1,:]
 
 
     # 時系列データプロット(x,u)
@@ -177,7 +140,7 @@ def main():
     plot_graph(t, u, lbls, scls)
 
     # アニメーション表示
-    _, ax = plt.subplots()
+    fig, ax = plt.subplots()
     for i in range(len(t)):
         draw_pendulum(ax, t[i], x[i,0], x[i,1], ip.l)
         plt.pause(0.01)

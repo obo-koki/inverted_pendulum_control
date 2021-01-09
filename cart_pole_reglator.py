@@ -91,7 +91,7 @@ def draw_pendulum(ax, t, xt, theta, l):
 
     cart_w = 1.0
     cart_h = 0.4
-    radius = 0.1
+    radius = 0.5
 
     cx = np.array([-0.5, 0.5, 0.5, -0.5, -0.5]) * cart_w + xt
     cy = np.array([0.0, 0.0, 1.0, 1.0, 0.0]) * cart_h + radius * 2.0
@@ -113,7 +113,7 @@ def draw_pendulum(ax, t, xt, theta, l):
 
     ax.cla()
     ax.plot(cx, cy, "-b")
-    ax.plot(bx, by, "-k")
+    #ax.plot(bx, by, "-k")
     ax.plot(rwx, rwy, "-k")
     ax.plot(lwx, lwy, "-k")
     ax.plot(wx, wy, "-k")
@@ -134,7 +134,7 @@ def main():
     print (K)
 
     # シミュレーション用変数初期化
-    T = 10
+    T = 1
     dt = 0.05
     x0 = np.array([0, 0.1, 0, 0]) * np.random.randn(1)
 

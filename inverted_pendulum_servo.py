@@ -136,12 +136,13 @@ class InvertedPendulum:
         dx[0] = dtheta
         #dx[1] = self.a21 * theta + self.a22 * dtheta + self.a23 * dfai + self.b2 * V
         #dx[2] = self.a31 * theta + self.a32 * dtheta + self.a33 * dfai + self.b3 * V
-        dx[1] = ( self.m*self.r*self.L*np.sin(theta) - A/B*self.b*np.sin(theta) )*dtheta**2 - (self.D_fai + self.n*D)*dfai + D - A/B*self.d*np.sin(theta) + A/B*self.D_th*dtheta
-        #dx[1] = (B/(B**2-A*C))*dx[1] 
         #dx[1] = (B/(B*C-A**2))*(dtheta**2*self.b*np.sin(theta) + self.d*np.sin(theta)-self.D_th*dtheta-A/B*(dtheta**2*self.m*self.r*self.L*np.sin(theta)-(self.D_fai+(self.n**2*self.K_E*self.K_T)/self.R_a)*dfai+(self.n*self.K_T)/self.R_a*V))
-        #dx[2] = ( C/B*self.m*self.r*self.L*np.sin(theta) - self.b*np.sin(theta) )*dtheta**2 - C/B*(self.D_fai+self.n*D)*dfai + C/B*D - self.d*np.sin(theta) + self.D_th*dtheta
-        #dx[2] = (B/(C*A-B**2))*dx[2]
-        dx[2] = (A/(A**2-B*C))*(dtheta**2*self.b*np.sin(theta) + self.d*np.sin(theta)-self.D_th*dtheta-C/A*(dtheta**2*self.m*self.r*self.L*np.sin(theta)-(self.D_fai+(self.n**2*self.K_E*self.K_T)/self.R_a)*dfai+(self.n*self.K_T)/self.R_a*V))
+        #dx[2] = (A/(A**2-B*C))*(dtheta**2*self.b*np.sin(theta) + self.d*np.sin(theta)-self.D_th*dtheta-C/A*(dtheta**2*self.m*self.r*self.L*np.sin(theta)-(self.D_fai+(self.n**2*self.K_E*self.K_T)/self.R_a)*dfai+(self.n*self.K_T)/self.R_a*V))
+
+        dx[1] = ( self.m*self.r*self.L*np.sin(theta) - A/B*self.b*np.sin(theta) )*dtheta**2 - (self.D_fai + self.n*D)*dfai + D - A/B*self.d*np.sin(theta) + A/B*self.D_th*dtheta
+        dx[1] = (B/(B**2-A*C))*dx[1] 
+        dx[2] = ( C/B*self.m*self.r*self.L*np.sin(theta) - self.b*np.sin(theta) )*dtheta**2 - C/B*(self.D_fai+self.n*D)*dfai + C/B*D - self.d*np.sin(theta) + self.D_th*dtheta
+        dx[2] = (B/(C*A-B**2))*dx[2]
         return dx
     
     def simulation(self, T, dt, x0, target_vel):
@@ -257,16 +258,16 @@ def main():
     ip.calc_control_model()
 
     # リカッチ方程式を解く
-    Q = np.diag([1*10**(2), 1.0*10**(2), 1.0, 1.5])
+    Q = np.diag([1*10**(3), 1.0*10**(2), 1.0, 1.5])
     R = np.eye(1)
     #Q = np.diag([1*10**(8), 1.5*10**(8), 50, 15])
     #R = np.eye(1)
     ip.lqr(Q,R)
 
     #シミュレーション
-    T = 3 #シミュレーション時間
+    T = 5 #シミュレーション時間
     dt = 0.1 #刻み時間
-    x0 = np.array([0.2, 0, 0]) #状態変数初期値 x=[th, th/dt, fai/dt]
+    x0 = np.array([0.3, 0, 0]) #状態変数初期値 x=[th, th/dt, fai/dt]
     target_vel = 0.1 # m/s
     ip.simulation(T, dt, x0, target_vel)
 
